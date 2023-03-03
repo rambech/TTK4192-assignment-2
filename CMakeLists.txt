@@ -63,6 +63,8 @@ add_service_files(
 DIRECTORY srv
 FILES 
 positionControl.srv
+isThroughObstacle.srv
+isInObstacle.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -112,7 +114,7 @@ generate_messages(
 catkin_package(
   #INCLUDE_DIRS include
   LIBRARIES ca2_ttk4192
-  CATKIN_DEPENDS rospy std_msgs message_runtime
+  CATKIN_DEPENDS rospy std_msgs geometmessage_runtime
   #DEPENDS system_lib
 )
 

@@ -1,0 +1,4 @@
+geometry_msgs/Point vex
+float64 radius
+---
+bool inObstacle

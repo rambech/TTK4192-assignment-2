@@ -5,6 +5,9 @@ import numpy as np
 from shapely.geometry import LineString, Point, MultiPoint
 
 from visualization_msgs.msg import Marker, MarkerArray
+from nav_msgs.msg import OccupancyGrid
+
+from ca2_ttk4192.srv import isThroughObstacle, isThroughObstacleResponse, isInObstacle, isInObstacleResponse
 
 class Line():
     def __init__(self, p0, p1):
@@ -36,10 +39,15 @@ class CollisionDetector:
   
     def __init__(self):
 
+        def callback(msg):
+            self.map = msg
+            self.new_map = True
+
         self.new_map = False
+        rospy.Subscriber("/map", OccupancyGrid, callback)
 
         try: 
-            self.map = OccupancyGrid()
+            self.map = OccupancyGrid
         except NameError:
             print("NameError: ")
             print("OccupancyGrid is not yet imported...")
