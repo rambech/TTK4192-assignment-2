@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
 import rospy
+from random import random
+from numpy.linalg import norm
+from math import inf
 
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import Point
@@ -9,7 +12,7 @@ from ca2_ttk4192.srv import isThroughObstacle, isThroughObstacleRequest, isInObs
 
 point_in_obstacle_service = rospy.ServiceProxy('point_in_obstacle', isInObstacle)
 
-def isInObstacle(vex, radius):
+def isInObstacle(vex, radius): # This function name seems like a sketchy and semi-dangerous ambiguity 
 
     vex_pos = Point(vex[0], vex[1], 0.0)
 
@@ -54,6 +57,20 @@ def get_marker(type, pos, size, color, identity):
 
     return marker
 
+def nearest(vertex_list, goal_vertex):
+    prev_dist = inf
+    vex = None
+
+    for i, vertex in enumerate(vertex_list):
+        dist = norm((vertex[0], vertex[1]) - (goal_vertex[0], goal_vertex[1]))
+
+        if dist < prev_dist:
+            vex = vertex
+
+        prev_dist = dist
+
+    return vex
+        
 
 def get_edge_as_marker(first_point, second_point, color, identity, thickness=0.025):
 
@@ -66,11 +83,72 @@ def get_edge_as_marker(first_point, second_point, color, identity, thickness=0.0
     
     return edge_marker
 
+def RRT(startpos, endpos):
+    # RRT algorithm
+
+    # Making markes on the map in real time
+    tree_publisher = rospy.Publisher('tree_marker', MarkerArray, queue_size=10)
+    tree_marker = MarkerArray()
+    marker_identity = 0
+
+    # Create a blue-green square representing the start
+    start_rgb_color = [0/256, 158/256, 115/256]
+    start_marker_size = 0.2
+    start_marker = get_marker(Marker.CUBE, startpos, start_marker_size, start_rgb_color, marker_identity)
+    marker_identity += 1
+
+    # Create a vermillion square representing the goal
+    end_rgb_color = [213/256, 94/256, 0/256]
+    end_marker_size = 0.2
+    end_marker = get_marker(Marker.CUBE, endpos, end_marker_size, end_rgb_color, marker_identity)
+    marker_identity +=1
+
+    tree_marker.markers.append(start_marker)
+    tree_marker.markers.append(end_marker)
+
+    edge_color = [204/256, 121/256, 167/256]
+
+    vertex_list = []
+    vertex_list.append(startpos) # The visualizer might not accept tuples
+
+    while (True):
+            random_vertex = Point(3*random(), 3*random(), 0.0)
+            obstacle_radius = 0.3
+
+            # End condition
+            if (norm((random_vertex[0], random_vertex[0]) - endpos) < obstacle_radius):
+                vertex_list.append(random_vertex)
+                break
+
+            # If vertex in obstacle go to next loop
+            if (isInObstacle(random_vertex, obstacle_radius)):
+               continue
+           
+            nearest_vertex = nearest(vertex_list, random_vertex)
+
+            # Go to next loop if line crosses through obstacle
+            if (isThruObstacle(nearest_vertex, random_vertex)):
+               continue
+
+            vertex_list.append(random_vertex)
+
+            edge_marker = get_edge_as_marker(nearest_vertex, random_vertex, edge_color, marker_identity)
+            marker_identity += 1
+            tree_marker.markers.append(edge_marker)
+
+
+    # Testing publishing markers outside the loop first, 
+    # would be cool to do inside the loop afterwards
+    rospy.Rate(0.5).sleep() # needs to a bit for the publisher to start, a bit weird. 
+    tree_publisher.publish(tree_marker)
+
+
+
+
+
+    
 
 if __name__ == '__main__':
-
-
-
     # -----------------
     # Init the RRT node
     rospy.init_node('RRT')
@@ -79,15 +157,17 @@ if __name__ == '__main__':
 
     # -----------------------------------------------
     # The start and end positions of the "short maze"
-    startpos = (0.0, 0.0)
-    endpos = (4.5, 5.0)
+    if (maze == "short_maze"):
+        startpos = (0.0, 0.0)
+        endpos = (4.5, 5.0)
 
 
 
     # -------------------------------------------------------------------------
     # The start and end positions of the bonus task with the "complicated maze"
-    startpos = (0.0, 0.0)
-    endpos = (4.5, 9.0)
+    if (maze == "complicated_maze"):
+        startpos = (0.0, 0.0)
+        endpos = (4.5, 9.0)
 
 
     
