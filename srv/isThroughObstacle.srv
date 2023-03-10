@@ -1,4 +1,5 @@
 geometry_msgs/Point p0
 geometry_msgs/Point p1
+float64 radius
 ---
 bool throughObstacle
